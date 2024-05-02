@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "travellings-graph"
+version = "0.1.0"
+description = ""
+authors = ["ArcticLampyrid <ArcticLampyrid@outlook.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.31.0"
+scrapy = "^2.11.1"
+networkx = "^3.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
