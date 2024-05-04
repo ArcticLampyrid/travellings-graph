@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+import datetime
 import json
 import os
 import sys
+from typing import Generator
 import urllib3
 import urllib3.util
 import networkx as nx
@@ -11,10 +13,10 @@ from travellings_graph.friend_spider import run_spider
 
 @dataclass
 class ConnectionAnalysis:
-    name: str
-    url: str
-    n_connected: int
+    id: int
+    connection_count: int
     avg_distance: float
+    connection_in6degrees: int = 0
 
 
 def simple_host(url: str | urllib3.util.Url | None) -> str:
@@ -47,41 +49,27 @@ def build_graph(members: list[MemberRecord]) -> nx.DiGraph:
     return graph
 
 
-def analyze_connection(
-    graph: nx.DiGraph, members: list[MemberRecord]
-) -> list[ConnectionAnalysis]:
-    member_map_id = {member.id: member for member in members}
-    analysis_result: list[ConnectionAnalysis] = []
+def analyze_connection(graph: nx.DiGraph) -> Generator[ConnectionAnalysis, None, None]:
     paths = nx.all_pairs_shortest_path_length(graph)
     for target, sources in paths:
-        target_member = member_map_id[target]
         if len(sources) == 1:
-            analysis_result.append(
-                ConnectionAnalysis(
-                    name=target_member.name,
-                    url=target_member.url,
-                    n_connected=0,
-                    avg_distance=0,
-                )
+            yield ConnectionAnalysis(
+                id=target,
+                connection_count=0,
+                avg_distance=0,
             )
             continue
         connected_edges = len(sources) - 1
         avg_distance = sum(sources.values()) / connected_edges
-        analysis_result.append(
-            ConnectionAnalysis(
-                name=target_member.name,
-                url=target_member.url,
-                n_connected=connected_edges,
-                avg_distance=avg_distance,
-            )
+        connection_in6degrees = (
+            sum(map(lambda x: 1 if x <= 6 else 0, sources.values())) - 1
         )
-    analysis_result.sort(
-        key=lambda x: (
-            x.n_connected / x.avg_distance if x.avg_distance > 0 else 0,
-            x.name,
+        yield ConnectionAnalysis(
+            id=target,
+            connection_count=connected_edges,
+            avg_distance=avg_distance,
+            connection_in6degrees=connection_in6degrees,
         )
-    )
-    return analysis_result
 
 
 def main():
@@ -98,33 +86,53 @@ def main():
 
     nx.write_gexf(graph, "graph.gexf")
 
-    connected_to = analyze_connection(graph, members)
-    with open("connected_to.md", "w", encoding="utf-8") as f:
-        for analysis in connected_to:
-            f.write(f"- [{analysis.name}]({analysis.url}) ")
-            f.write(f"is connected to {analysis.n_connected} nodes, ")
-            f.write(f"avg. distance {analysis.avg_distance:.2f}\n")
-    with open("connected_to.csv", "w", encoding="utf-8") as f:
-        f.write("Name,URL,ConnectedTo,AvgDistance\n")
-        for analysis in connected_to:
-            f.write(f'"{analysis.name}",')
-            f.write(f'"{analysis.url}",')
-            f.write(f"{analysis.n_connected},")
-            f.write(f"{analysis.avg_distance:.2f}\n")
+    outgoing_connections = {
+        connection.id: connection for connection in analyze_connection(graph)
+    }
+    incoming_connections = {
+        connection.id: connection for connection in analyze_connection(graph.reverse())
+    }
 
-    connected_by = analyze_connection(graph.reverse(), members)
-    with open("connected_by.md", "w", encoding="utf-8") as f:
-        for analysis in connected_by:
-            f.write(f"- [{analysis.name}]({analysis.url}) ")
-            f.write(f"is connected by {analysis.n_connected} nodes, ")
-            f.write(f"avg. distance {analysis.avg_distance:.2f}\n")
-    with open("connected_by.csv", "w", encoding="utf-8") as f:
-        f.write("Name,URL,ConnectedBy,AvgDistance\n")
-        for analysis in connected_by:
-            f.write(f'"{analysis.name}",')
-            f.write(f'"{analysis.url}",')
-            f.write(f"{analysis.n_connected},")
-            f.write(f"{analysis.avg_distance:.2f}\n")
+    with open("analysis.csv", "w", encoding="utf-8") as f:
+        f.write("ID,Name,URL," +
+                "OutgoingCount,OutgoingCountIn6Degrees,OutgoingAverage," + 
+                "IncomingCount,IncomingCountIn6Degrees,IncomingAverage\n")
+        for member in members:
+            outgoing = outgoing_connections[member.id]
+            incoming = incoming_connections[member.id]
+            f.write(
+                f"{member.id},\"{member.name}\",\"{member.url}\"," +
+                f"{outgoing.connection_count}," +
+                f"{outgoing.connection_in6degrees}," +
+                f"{outgoing.avg_distance:.4f}," +
+                f"{incoming.connection_count}," +
+                f"{incoming.connection_in6degrees}," +
+                f"{incoming.avg_distance:.4f}\n"
+            )
+
+
+    with open("analysis.md", "w", encoding="utf-8") as f:
+        f.write("# Connection Analysis\n")
+        f.write(
+            f"Build Date: {datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}  \n"
+        )
+        f.write(f"Total members: {len(members)}  \n")
+        f.write(f"Total connections: {len(graph.edges)}  \n")
+        f.write(
+            f"Average connections per member: {len(graph.edges) / len(members)}  \n"
+        )
+        for member in members:
+            outgoing = outgoing_connections[member.id]
+            incoming = incoming_connections[member.id]
+            f.write(f"## [{member.name}]({member.url}) \\(Member #{member.id}\\)\n")
+            f.write("### Outgoing Connections\n")
+            f.write(f"Connected to {outgoing.connection_count} members")
+            f.write(f" ({outgoing.connection_in6degrees} in 6 degrees)  \n")
+            f.write(f"Average distance: {outgoing.avg_distance:.4f}  \n")
+            f.write("### Incoming Connections\n")
+            f.write(f"Connected by {incoming.connection_count} members")
+            f.write(f" ({incoming.connection_in6degrees} in 6 degrees)  \n")
+            f.write(f"Average distance: {incoming.avg_distance:.4f}  \n")
 
 
 if __name__ == "__main__":

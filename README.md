@@ -27,7 +27,7 @@ The graph is built with [NetworkX](https://networkx.org/), and saved in `data/gr
 You can use [Gephi](https://gephi.org/) to visualize it and analyze the connections. For Arch Linux, you can install Gephi with `pacman -S gephi`.
 
 ## Analysis
-The basic analysis results are saved in `data/connected_to.[csv|md]` and `data/connected_by.[csv|md]`. The results include the average steps needed to connect to/by each member.
+The basic analysis results are saved in `data/analysis.csv`, as well as a simple report in `data/analysis.md`. The results include the average steps needed to connect to/by each member.
 
 ## Results
 A copy of the completed data was shared on my blog \([view it](https://alampy.com/2024/05/02/test-six-degrees-of-separation-on-travellings/)\). Note that the data may be outdated, and the results may be different from the latest.
