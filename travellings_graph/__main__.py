@@ -28,25 +28,38 @@ def simple_host(url: str | urllib3.util.Url | None) -> str:
         return ""
     return url.host.removeprefix("www.").removeprefix("blog.")
 
+def read_links_data() -> Generator[dict, None, None]:
+    with open("friends.lines.json", "r", encoding="utf-8") as f:
+        while line := f.readline():
+            yield json.loads(line)
 
-def build_graph(members: list[MemberRecord]) -> nx.DiGraph:
-    member_map = {simple_host(member.url): member for member in members}
+
+def build_graph(members: list[MemberRecord], member_map: dict[str, MemberRecord]) -> nx.DiGraph:
     graph = nx.DiGraph()
     for member in members:
         graph.add_node(member.id, name=member.name)
-    with open("friends.lines.json", "r", encoding="utf-8") as f:
-        while line := f.readline():
-            record = json.loads(line)
-            if record["kind"] == "friends_link":
-                source = simple_host(record["start"])
-                target = simple_host(record["target"])
-                if source == target:
-                    continue
-                if source in member_map and target in member_map:
-                    source_member = member_map[source]
-                    target_member = member_map[target]
-                    graph.add_edge(source_member.id, target_member.id)
+    for record in read_links_data():
+        if record["kind"] == "friends_link":
+            source = simple_host(record["start"])
+            target = simple_host(record["target"])
+            if source == target:
+                continue
+            if source in member_map and target in member_map:
+                source_member = member_map[source]
+                target_member = member_map[target]
+                graph.add_edge(source_member.id, target_member.id)
     return graph
+
+
+def build_links_page_map(member_map: dict[str, MemberRecord]) -> dict[str, str]:
+    page_map = {}
+    for record in read_links_data():
+        if record["kind"] == "friends_page":
+            host = simple_host(record["start"])
+            if host in member_map:
+                member = member_map[host]
+                page_map[member.id] = record["target"]
+    return page_map
 
 
 def analyze_connection(graph: nx.DiGraph) -> Generator[ConnectionAnalysis, None, None]:
@@ -82,9 +95,12 @@ def main():
         sys.exit(1)
 
     members = read_members()
-    graph = build_graph(members)
+    member_domain_map = {simple_host(member.url): member for member in members}
 
+    graph = build_graph(members, member_domain_map)
     nx.write_gexf(graph, "graph.gexf")
+
+    links_page_map = build_links_page_map(member_domain_map)
 
     outgoing_connections = {
         connection.id: connection for connection in analyze_connection(graph)
@@ -94,14 +110,16 @@ def main():
     }
 
     with open("analysis.csv", "w", encoding="utf-8") as f:
-        f.write("ID,Name,URL," +
+        f.write("ID,Name,URL,Links," +
                 "OutgoingCount,OutgoingCountIn6Degrees,OutgoingAverage," + 
                 "IncomingCount,IncomingCountIn6Degrees,IncomingAverage\n")
         for member in members:
             outgoing = outgoing_connections[member.id]
             incoming = incoming_connections[member.id]
+            links_page = links_page_map.get(member.id, "")
             f.write(
                 f"{member.id},\"{member.name}\",\"{member.url}\"," +
+                f"\"{links_page}\"," +
                 f"{outgoing.connection_count}," +
                 f"{outgoing.connection_in6degrees}," +
                 f"{outgoing.avg_distance:.4f}," +
@@ -124,7 +142,12 @@ def main():
         for member in members:
             outgoing = outgoing_connections[member.id]
             incoming = incoming_connections[member.id]
+            links_page = links_page_map.get(member.id, "")
             f.write(f"## [{member.name}]({member.url}) \\(Member #{member.id}\\)\n")
+            if len(links_page):
+                f.write(f"Links: {links_page}  \n")
+            else:
+                f.write("Links: Not Found  \n")
             f.write("### Outgoing Connections\n")
             f.write(f"Connected to {outgoing.connection_count} members")
             f.write(f" ({outgoing.connection_in6degrees} in 6 degrees)  \n")
