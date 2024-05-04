@@ -196,7 +196,7 @@ class FriendSpider(scrapy.Spider):
                     )
                     return
 
-        # Brute force: try some urls
+        # Brute force: try some subdomains
         if kwargs.get("allow_brute_force", True):
             # try to use @ www. or blog. to access
             if url_from.host.startswith("www."):
@@ -232,7 +232,18 @@ class FriendSpider(scrapy.Spider):
                     self.parse_homepage,
                     cb_kwargs={"start": start_url, "allow_brute_force": False},
                 )
-            return
+
+        # Brute force: try to access /links or /friends directly
+        response.follow(
+            url_from.scheme + "://" + url_from.host + "/links",
+            self.parse_friends_page,
+            cb_kwargs={"start": start_url, "allow_brute_force": False},
+        )
+        response.follow(
+            url_from.scheme + "://" + url_from.host + "/friends",
+            self.parse_friends_page,
+            cb_kwargs={"start": start_url, "allow_brute_force": False},
+        )
 
         yield {"kind": "no_friends_page", "start": start_url, "from": response.url}
 
