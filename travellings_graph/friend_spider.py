@@ -1,3 +1,5 @@
+import datetime
+import os
 from typing import Iterable
 import scrapy
 from scrapy.crawler import CrawlerProcess
@@ -323,6 +325,9 @@ class FriendSpider(scrapy.Spider):
 
 
 def run_spider():
+    if os.path.exists("friends.lines.json"):
+        bak_time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%SZ")
+        os.rename("friends.lines.json", f"friends.lines.json.bak.{bak_time}")
     user_agent = " ".join(
         [
             "Mozilla/5.0 (Linux x86_64)",
