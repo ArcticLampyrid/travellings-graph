@@ -18,6 +18,17 @@ def download_members():
     response = requests.get(
         "https://api.travellings.cn/all",
         timeout=30,
+        headers={
+            "User-Agent": " ".join(
+                [
+                    "Mozilla/5.0 (Linux x86_64)",
+                    "AppleWebKit/537.36 (KHTML, like Gecko)",
+                    "Chrome/124.0.0.0",
+                    "Safari/537.36",
+                    "TravellingsGraph/0.1 (Travellings.cn)",
+                ]
+            )
+        },
     )
     response.raise_for_status()
     with open("members.json", "w", encoding="utf-8") as file:
