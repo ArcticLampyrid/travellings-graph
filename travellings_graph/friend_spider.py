@@ -1,6 +1,8 @@
 import datetime
+import re
+import json
 import os
-from typing import Iterable
+from typing import Generator, Iterable
 import scrapy
 from scrapy.crawler import CrawlerProcess
 import urllib3
@@ -256,6 +258,19 @@ class FriendSpider(scrapy.Spider):
         yield {"kind": "no_friends_page", "start": start_url, "from": response.url}
 
     def parse_friends_page(self, response, **kwargs):
+        if b"%c Mix Space %c https://github.com/mx-space" in response.body:
+            iterator = self.try_parse_friend_page_mix_space_index(response, **kwargs)
+            while True:
+                try:
+                    yield next(iterator)
+                except StopIteration as e:
+                    if e.value is True:
+                        return
+                    break
+
+        yield from self.parse_friends_page_generic(response, **kwargs)
+
+    def parse_friends_page_generic(self, response, **kwargs):
         start_url = kwargs.get("start", response.url)
         url_from = urllib3.util.parse_url(response.url)
 
@@ -321,6 +336,56 @@ class FriendSpider(scrapy.Spider):
                 "kind": "no_friends_link",
                 "start": start_url,
                 "from": response.url,
+            }
+
+    def try_parse_friend_page_mix_space_index(
+        self, response, **kwargs
+    ) -> Generator[any, None, bool]:
+        patterns = [
+            r"\"NEXT_PUBLIC_API_URL\"\s*:\s*\"([^\"]*)\"",
+            r'<meta\s+name="api_url"\s+content="([^\"]*)"\/?\s*>',
+        ]
+        body_str = response.body.decode("utf-8")
+        start_url = kwargs.get("start", response.url)
+        for pattern in patterns:
+            api_url = re.findall(pattern, body_str)
+            if len(api_url) == 0:
+                continue
+            api_url = api_url[0]
+            links_url = api_url + "/links/all"
+            yield response.follow(
+                links_url,
+                self.parse_friend_page_mix_space_data,
+                cb_kwargs={"start": start_url},
+            )
+            return True
+        return False
+
+    def parse_friend_page_mix_space_data(self, response, **kwargs):
+        start_url = kwargs.get("start", response.url)
+        if response.status != 200:
+            yield {"kind": "no_friends_page", "start": start_url, "from": response.url}
+            return
+        if not response.headers.get("Content-Type", b"").startswith(
+            b"application/json"
+        ):
+            yield {"kind": "no_friends_page", "start": start_url, "from": response.url}
+            return
+        json_data = json.loads(response.body.decode("utf-8"))
+        yield {
+            "kind": "friends_page",
+            "start": start_url,
+            "target": response.url,
+        }
+        if "data" not in json_data:
+            return
+        for link in json_data["data"]:
+            yield {
+                "kind": "friends_link",
+                "start": start_url,
+                "from": response.url,
+                "target": link["url"],
+                "selector": "::mix_space",
             }
 
 
