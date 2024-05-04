@@ -1,3 +1,4 @@
+from typing import Iterable
 import scrapy
 from scrapy.crawler import CrawlerProcess
 import urllib3
@@ -110,8 +111,13 @@ class FriendSpider(scrapy.Spider):
     def __init__(self):
         super().__init__()
         download_members()
-        members = read_members()
-        self.start_urls = [member.url for member in members]
+        self.members = read_members()
+
+    def start_requests(self) -> Iterable[scrapy.Request]:
+        for member in self.members:
+            yield scrapy.Request(
+                member.url, dont_filter=True, cb_kwargs={"start": member.url}
+            )
 
     def parse(self, response, **kwargs):
         yield from self.parse_homepage(response, **kwargs)
