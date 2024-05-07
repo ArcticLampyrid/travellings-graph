@@ -10,6 +10,9 @@ mkdir -p data
 docker run --rm -v $(pwd)/data:/app/data travellings-graph crwaled
 docker run --rm -v $(pwd)/data:/app/data travellings-graph analyze
 ls -l data
+
+# Serve as API server
+docker run --rm -v $(pwd)/data:/app/data -p 8471:8471 travellings-graph serve
 ```
 
 ## Crwal
@@ -30,6 +33,9 @@ During the analysis, the graph is firstly built with [NetworkX](https://networkx
 > You can use [Gephi](https://gephi.org/) to visualize the graph and analyze the connections. For Arch Linux, you can install Gephi with `pacman -S gephi`.
 
 Also, a basic analysis is generated and saved in `data/analysis.csv`, as well as a simple report in `data/analysis.md`. The results include the average steps needed to connect to/by each member.
+
+# Serve
+You can run with subcommand `serve` to serve as an API server. The server is built with [FastAPI](https://fastapi.tiangolo.com/), and you can access the API document at `/docs` or `/redoc` endpoint.
 
 ## Results
 A copy of the completed data was shared on my blog \([view it](https://alampy.com/2024/05/02/test-six-degrees-of-separation-on-travellings/)\). Note that the data may be outdated, and the results may be different from the latest.

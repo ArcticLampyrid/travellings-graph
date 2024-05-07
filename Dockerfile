@@ -16,4 +16,5 @@ ENV VIRTUAL_ENV=/app/.venv \
 COPY --from=builder /app /app
 RUN mkdir -p /app/data
 WORKDIR /app/data
+EXPOSE 8471
 ENTRYPOINT ["python", "-m", "travellings_graph"]
