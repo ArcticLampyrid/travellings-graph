@@ -135,12 +135,23 @@ def get_analysis_all() -> GetAnalysisAllResponse:
 
 
 @app.get("/v1/analysis/page/{page}")
-def get_analysis_by_page(page: int) -> GetAnalysisByPageResponse:
+def get_analysis_by_page(page: int, q: str | None = None) -> GetAnalysisByPageResponse:
+    data = global_data.analysis
+    if q is not None:
+        q = q.lower()
+        data = [
+            item
+            for item in data
+            if q in str(item.id)
+            or q in item.name.lower()
+            or q in item.url.lower()
+            or q in item.links.lower()
+        ]
     item_per_page = 32
-    total_page = (len(global_data.analysis) + item_per_page - 1) // item_per_page
-    items = global_data.analysis[(page - 1) * item_per_page : page * item_per_page]
+    total_page = (len(data) + item_per_page - 1) // item_per_page
+    items = data[(page - 1) * item_per_page : page * item_per_page]
     return GetAnalysisByPageResponse(
-        total_items=len(global_data.analysis),
+        total_items=len(data),
         total_page=total_page,
         page=page,
         items=items,
