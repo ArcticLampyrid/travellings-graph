@@ -27,7 +27,8 @@ def download_members():
                     "Safari/537.36",
                     "TravellingsGraph/0.1 (Travellings.cn)",
                 ]
-            )
+            ),
+            "Referer": "https://list.travellings.cn/",
         },
     )
     response.raise_for_status()
