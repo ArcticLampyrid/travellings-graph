@@ -309,6 +309,9 @@ class FriendSpider(scrapy.Spider):
             has_friend_link = False
             for root_elem in root_elems:
                 urls_str = root_elem.css("a[href]::attr(href)").getall()
+                urls_str += root_elem.css(
+                    "div[hrefs]::attr(hrefs)"
+                ).getall()  # for typecho-bearsimple
 
                 for elem in root_elem.css("script"):
                     elem: scrapy.Selector = elem
