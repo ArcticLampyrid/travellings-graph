@@ -4,7 +4,7 @@ from travellings_graph.friend_spider import run_spider
 from travellings_graph.server import run_server
 
 
-def command_crwaled(_args):
+def command_crawl(_args):
     run_spider()
 
 
@@ -20,8 +20,8 @@ def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
 
-    parser_crwaled = subparsers.add_parser("crwaled")
-    parser_crwaled.set_defaults(handler=command_crwaled)
+    parser_crawl = subparsers.add_parser("crawl")
+    parser_crawl.set_defaults(handler=command_crawl)
 
     parser_analyze = subparsers.add_parser("analyze")
     parser_analyze.set_defaults(handler=command_analyze)

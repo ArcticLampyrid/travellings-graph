@@ -7,7 +7,7 @@ This project is to build a graph of links between [Travellings](https://www.trav
 ```bash
 docker buildx build -t travellings-graph .
 mkdir -p data
-docker run --rm -v $(pwd)/data:/app/data travellings-graph crwaled
+docker run --rm -v $(pwd)/data:/app/data travellings-graph crawl
 docker run --rm -v $(pwd)/data:/app/data travellings-graph analyze
 ls -l data
 
@@ -15,14 +15,14 @@ ls -l data
 docker run --rm -v $(pwd)/data:/app/data -p 8471:8471 travellings-graph serve
 ```
 
-## Crwal
-You can run with subcommand `crwaled` to crwal the data from the source.
+## Ccrawlrawl
+You can run with subcommand `crawl` to crawl the data from the source.
 
 > [!WARNING]  
-> Because there are no standard format for exchanging Links, the data is crwaled with many tricks, and may not be accurate. If you find any error, please let me know.
+> Because there are no standard format for exchanging Links, the data is crawled with many tricks, and may not be accurate. If you find any error, please let me know.
 
 The member list is from [Travellings List](https://list.travellings.cn/), and saved in `data/members.json`.  
-The Links data is crwaled from each member's Links page, and saved in `data/friends.lines.json`.
+The Links data is crawled from each member's Links page, and saved in `data/friends.lines.json`.
 
 ## Analyze
 You can run with subcommand `analyze` to analyze the data.

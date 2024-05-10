@@ -87,7 +87,7 @@ def analyze_connection(graph: nx.DiGraph) -> Generator[ConnectionAnalysis, None,
 
 def run_analyzer():
     if not os.path.exists("friends.lines.json"):
-        print("Friends Info is not crwaled yet, please run with `--crwaled` first")
+        print("Friends Info is not crawled yet, please run with `crawl` first")
         sys.exit(1)
 
     members = read_members()
