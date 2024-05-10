@@ -3,5 +3,7 @@
         "--disable=C0114", // Disable missing module docstring
         "--disable=C0115", // Disable missing class docstring
         "--disable=C0116", // Disable missing function docstring
-    ]
+    ],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic"
 }

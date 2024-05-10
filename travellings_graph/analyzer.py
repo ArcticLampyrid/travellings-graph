@@ -51,7 +51,7 @@ def build_graph(members: list[MemberRecord], member_map: dict[str, MemberRecord]
     return graph
 
 
-def build_links_page_map(member_map: dict[str, MemberRecord]) -> dict[str, str]:
+def build_links_page_map(member_map: dict[str, MemberRecord]) -> dict[int, str]:
     page_map = {}
     for record in read_links_data():
         if record["kind"] == "friends_page":

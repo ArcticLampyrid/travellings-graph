@@ -2,7 +2,7 @@ import datetime
 import re
 import json
 import os
-from typing import Generator, Iterable
+from typing import Any, Generator, Iterable
 import scrapy
 from scrapy.crawler import CrawlerProcess
 import urllib3
@@ -102,6 +102,8 @@ def extract_url_from_elem(elem: scrapy.Selector):
 
 def cross_domain(url1: urllib3.util.Url, url2: urllib3.util.Url):
     if url1 is None or url2 is None:
+        return False
+    if url1.host is None or url2.host is None:
         return False
     strip1 = url1.host.removeprefix("www.").removeprefix("blog.")
     strip2 = url2.host.removeprefix("www.").removeprefix("blog.")
@@ -209,7 +211,10 @@ class FriendSpider(scrapy.Spider):
         # Brute force: try some subdomains
         if kwargs.get("allow_brute_force", True):
             # try to use @ www. or blog. to access
-            if url_from.host.startswith("www."):
+            if url_from.host is None or url_from.scheme is None:
+                # Skip
+                pass
+            elif url_from.host.startswith("www."):
                 yield response.follow(
                     url_from.scheme + "://blog." + url_from.host[4:],
                     self.parse_homepage,
@@ -243,17 +248,18 @@ class FriendSpider(scrapy.Spider):
                     cb_kwargs={"start": start_url, "allow_brute_force": False},
                 )
 
-        # Brute force: try to access /links or /friends directly
-        response.follow(
-            url_from.scheme + "://" + url_from.host + "/links",
-            self.parse_friends_page,
-            cb_kwargs={"start": start_url, "allow_brute_force": False},
-        )
-        response.follow(
-            url_from.scheme + "://" + url_from.host + "/friends",
-            self.parse_friends_page,
-            cb_kwargs={"start": start_url, "allow_brute_force": False},
-        )
+        if url_from.host is not None and url_from.scheme is not None:
+            # Brute force: try to access /links or /friends directly
+            response.follow(
+                url_from.scheme + "://" + url_from.host + "/links",
+                self.parse_friends_page,
+                cb_kwargs={"start": start_url, "allow_brute_force": False},
+            )
+            response.follow(
+                url_from.scheme + "://" + url_from.host + "/friends",
+                self.parse_friends_page,
+                cb_kwargs={"start": start_url, "allow_brute_force": False},
+            )
 
         yield {"kind": "no_friends_page", "start": start_url, "from": response.url}
 
@@ -340,7 +346,7 @@ class FriendSpider(scrapy.Spider):
 
     def try_parse_friend_page_mix_space_index(
         self, response, **kwargs
-    ) -> Generator[any, None, bool]:
+    ) -> Generator[Any, None, bool]:
         patterns = [
             r"\"NEXT_PUBLIC_API_URL\"\s*:\s*\"([^\"]*)\"",
             r'<meta\s+name="api_url"\s+content="([^\"]*)"\/?\s*>',

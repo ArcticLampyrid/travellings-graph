@@ -10,7 +10,7 @@ class MemberRecord:
     name: str
     status: str
     url: str
-    tag: tuple[str]
+    tag: tuple[str] | tuple[()] = ()
     failed_reason: Optional[str] = None
 
 
