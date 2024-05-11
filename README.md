@@ -15,7 +15,7 @@ ls -l data
 docker run --rm -v $(pwd)/data:/app/data -p 8471:8471 travellings-graph serve
 ```
 
-## Ccrawlrawl
+## Crawl
 You can run with subcommand `crawl` to crawl the data from the source.
 
 > [!WARNING]  
