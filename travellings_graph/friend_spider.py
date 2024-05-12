@@ -7,6 +7,7 @@ import scrapy
 from scrapy.crawler import CrawlerProcess
 import urllib3
 import urllib3.util
+from travellings_graph.domain_utils import cross_domain
 from travellings_graph.member_list import download_members, read_members
 
 FRIEND_LINKS_NAME_KEYWORDS = [
@@ -98,16 +99,6 @@ def extract_url_from_elem(elem: scrapy.Selector):
     for url_str in urls_from_elem:
         url_str = url_str[1:-1]
         yield url_str
-
-
-def cross_domain(url1: urllib3.util.Url, url2: urllib3.util.Url):
-    if url1 is None or url2 is None:
-        return False
-    if url1.host is None or url2.host is None:
-        return False
-    strip1 = url1.host.removeprefix("www.").removeprefix("blog.")
-    strip2 = url2.host.removeprefix("www.").removeprefix("blog.")
-    return strip1 != strip2
 
 
 class FriendSpider(scrapy.Spider):

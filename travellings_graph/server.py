@@ -9,6 +9,7 @@ import networkx as nx
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 from pydantic import BaseModel
+from travellings_graph.domain_utils import strip_host
 
 
 class AnalysisItem(BaseModel):
@@ -70,14 +71,6 @@ class GlobalData:
     analysis_id_map: dict[int, AnalysisItem]
     analysis_host_map: dict[str, AnalysisItem]
     graph: nx.DiGraph
-
-
-def strip_host(host: str) -> str:
-    if (index := host.find("://")) != -1:
-        host = host[index + 3 :]
-    if (index := host.find("/")) != -1:
-        host = host[:index]
-    return host.strip().removeprefix("www.").removeprefix("blog.")
 
 
 def reload() -> GlobalData:

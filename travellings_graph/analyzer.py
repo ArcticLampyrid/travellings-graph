@@ -4,9 +4,8 @@ import json
 import os
 import sys
 from typing import Generator
-import urllib3
-import urllib3.util
 import networkx as nx
+from travellings_graph.domain_utils import strip_host
 from travellings_graph.member_list import MemberRecord, read_members
 
 
@@ -16,16 +15,6 @@ class ConnectionAnalysis:
     connection_count: int
     avg_distance: float
     connection_in6degrees: int = 0
-
-
-def simple_host(url: str | urllib3.util.Url | None) -> str:
-    if url is None:
-        return ""
-    if isinstance(url, str):
-        url = urllib3.util.parse_url(url)
-    if url.host is None:
-        return ""
-    return url.host.removeprefix("www.").removeprefix("blog.")
 
 
 def read_links_data() -> Generator[dict, None, None]:
@@ -40,8 +29,8 @@ def build_graph(members: list[MemberRecord], member_map: dict[str, MemberRecord]
         graph.add_node(member.id, name=member.name)
     for record in read_links_data():
         if record["kind"] == "friends_link":
-            source = simple_host(record["start"])
-            target = simple_host(record["target"])
+            source = strip_host(record["start"])
+            target = strip_host(record["target"])
             if source == target:
                 continue
             if source in member_map and target in member_map:
@@ -55,7 +44,7 @@ def build_links_page_map(member_map: dict[str, MemberRecord]) -> dict[int, str]:
     page_map = {}
     for record in read_links_data():
         if record["kind"] == "friends_page":
-            host = simple_host(record["start"])
+            host = strip_host(record["start"])
             if host in member_map:
                 member = member_map[host]
                 page_map[member.id] = record["target"]
@@ -91,7 +80,7 @@ def run_analyzer():
         sys.exit(1)
 
     members = read_members()
-    member_domain_map = {simple_host(member.url): member for member in members}
+    member_domain_map = {strip_host(member.url): member for member in members}
 
     graph = build_graph(members, member_domain_map)
     nx.write_gexf(graph, "graph.gexf")
