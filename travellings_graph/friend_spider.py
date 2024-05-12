@@ -137,42 +137,50 @@ class FriendSpider(scrapy.Spider):
             yield {"kind": "no_friends_page", "start": start_url, "from": response.url}
             return
 
-        visited = set()
+        for policy_stage in range(2):
+            visited = set()
+            for elem in response.css("a[href]"):
+                elem: scrapy.Selector = elem
+                url_str = response.urljoin(elem.attrib["href"])
+                url = urllib3.util.parse_url(url_str)
+                if not self.url_to_handle(url, url_from):
+                    continue
+                if cross_domain(url, url_from):  # avoid cross-domain
+                    continue
 
-        for elem in response.css("a[href]"):
-            elem: scrapy.Selector = elem
-            url_str = response.urljoin(elem.attrib["href"])
-            url = urllib3.util.parse_url(url_str)
-            if not self.url_to_handle(url, url_from):
-                continue
-            if cross_domain(url, url_from):  # avoid cross-domain
-                continue
+                # avoid duplicate urls in the same page
+                if url_str in visited:
+                    continue
+                visited.add(url_str)
 
-            # avoid duplicate urls in the same page
-            if url_str in visited:
-                continue
-            visited.add(url_str)
-
-            if url.path is not None:
-                if any(
-                    keyword in url.path.removesuffix(".html").removesuffix("/")
-                    for keyword in FRIEND_LINKS_URL_PREFIXS
-                ):
-                    yield response.follow(
-                        url_str, self.parse_friends_page, cb_kwargs={"start": start_url}
-                    )
-                    return
-
-            title_str = "".join(elem.css("::text").getall()).strip()
-            if (
-                title_str is not None
-                and len(title_str) <= FRIEND_LINKS_NAME_LENGTH_LIMIT
-            ):
-                if any(keyword in title_str for keyword in FRIEND_LINKS_NAME_KEYWORDS):
-                    yield response.follow(
-                        url_str, self.parse_friends_page, cb_kwargs={"start": start_url}
-                    )
-                    return
+                if policy_stage == 0:  # try to find by url path (this is more accurate)
+                    if url.path is not None:
+                        if any(
+                            keyword in url.path.removesuffix(".html").removesuffix("/")
+                            for keyword in FRIEND_LINKS_URL_PREFIXS
+                        ):
+                            yield response.follow(
+                                url_str,
+                                self.parse_friends_page,
+                                cb_kwargs={"start": start_url},
+                            )
+                            return
+                elif policy_stage == 1:  # if no url path matched, try to find by title
+                    title_str = "".join(elem.css("::text").getall()).strip()
+                    if (
+                        title_str is not None
+                        and len(title_str) <= FRIEND_LINKS_NAME_LENGTH_LIMIT
+                    ):
+                        if any(
+                            keyword in title_str
+                            for keyword in FRIEND_LINKS_NAME_KEYWORDS
+                        ):
+                            yield response.follow(
+                                url_str,
+                                self.parse_friends_page,
+                                cb_kwargs={"start": start_url},
+                            )
+                            return
 
         # if no friend link found, try to find next page (eg. homepage --> blog)
         for elem in response.css("a[href]"):
