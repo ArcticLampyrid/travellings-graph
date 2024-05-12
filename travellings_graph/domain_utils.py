@@ -10,6 +10,8 @@ def cross_domain(url1: urllib3.util.Url, url2: urllib3.util.Url):
         return False
     strip1 = strip_host(url1.host)
     strip2 = strip_host(url2.host)
+    if strip1.endswith(f".{strip2}") or strip2.endswith(f".{strip1}"):
+        return False
     return strip1 != strip2
 
 
