@@ -7,7 +7,7 @@ import scrapy
 from scrapy.crawler import CrawlerProcess
 import urllib3
 import urllib3.util
-from travellings_graph.domain_utils import cross_domain
+from travellings_graph.domain_utils import cross_domain, host_or_sub_in_list
 from travellings_graph.member_list import download_members, read_members
 
 FRIEND_LINKS_NAME_KEYWORDS = [
@@ -46,17 +46,12 @@ FRIEND_BOX_SELECTOR = [
 FRIEND_LINKS_DENY_HOSTS = set(
     [
         "travellings.link",
-        "www.travellings.link",
         "travellings.cn",
-        "www.travellings.cn",
-        "icp.gov.moe",
+        "gov.moe",
         "travel.moe",
-        "beian.miit.gov.cn",
-        "beian.mps.gov.cn",
-        "www.beian.gov.cn",
-        "www.foreverblog.cn",
+        "gov.cn",
         "foreverblog.cn",
-        "cn.aliyun.com",
+        "aliyun.com",
         "github.com",
         "twitter.com",
         "telegram.me",
@@ -65,26 +60,15 @@ FRIEND_LINKS_DENY_HOSTS = set(
         "creativecommons.org",
         "weibo.com",
         "gitee.io",
-        "q1.qlogo.cn",
-        "q2.qlogo.cn",
-        "secure.gravatar.com",
-        "www.gravatar.com",
+        "qlogo.cn",
         "gravatar.com",
         "cravatar.cn",
         "hexo.io",
-        "s.gravatar.com",
-        "space.bilibili.com",
-        "www.bilibili.com",
         "bilibili.com",
-        "www.zhihu.com",
         "zhihu.com",
-        "connect.qq.com",
-        "sns.qzone.qq.com",
-        "service.weibo.com",
-        "python.langchain.com",
-        "www.youtube.com",
+        "qq.com",
+        "langchain.com",
         "youtube.com",
-        "www.weibo.com",
     ]
 )
 
@@ -128,7 +112,9 @@ class FriendSpider(scrapy.Spider):
             url_from = urllib3.util.parse_url(url_from)
         if url.scheme not in ["http", "https"]:
             return False
-        if url.host in FRIEND_LINKS_DENY_HOSTS:
+        if url.host is not None and host_or_sub_in_list(
+            url.host, FRIEND_LINKS_DENY_HOSTS
+        ):
             return False
         if url.path is not None:
             if url.path.startswith("/avatar") or url.path.startswith("/gravatar"):

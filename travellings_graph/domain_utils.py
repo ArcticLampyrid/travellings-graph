@@ -24,3 +24,15 @@ def strip_host(host: str | None) -> str:
     for subdomain in common_subdomains:
         host = host.removeprefix(subdomain + ".").strip()
     return host
+
+
+def host_or_sub_in_list(host: str, hosts: set[str]) -> bool:
+    if host in hosts:
+        return True
+    dot_index = host.find(".")
+    while dot_index != -1:
+        host = host[dot_index + 1 :]
+        if host in hosts:
+            return True
+        dot_index = host.find(".")
+    return False
