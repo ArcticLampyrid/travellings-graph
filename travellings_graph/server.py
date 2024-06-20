@@ -108,7 +108,7 @@ def reload() -> GlobalData:
     )
 
 
-global_data = reload()
+global_data: GlobalData = GlobalData([], {}, {}, nx.DiGraph())
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -282,6 +282,8 @@ def get_predecessors(target_id: int) -> GetPredecessorsResponse:
 
 
 def run_server(bind: Optional[list[str]] = None):
+    global global_data  # pylint: disable=global-statement
+    global_data = reload()
     config = Config()
     config.bind = bind or [":8471"]
     asyncio.run(serve(app, config))  # type: ignore
