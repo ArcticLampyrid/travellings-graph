@@ -142,6 +142,17 @@ def run_analyzer():
             f.write(f" ({incoming.connection_in6degrees} in 6 degrees)  \n")
             f.write(f"Average distance: {incoming.avg_distance:.4f}  \n")
 
+    with open("build-info.json", "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "members": len(members),
+                "connections": len(graph.edges),
+                "average_connections": len(graph.edges) / len(members),
+                "build_time": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            },
+            f,
+            indent=2,
+        )
 
 if __name__ == "__main__":
     run_analyzer()

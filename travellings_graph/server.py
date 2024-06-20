@@ -12,6 +12,22 @@ from pydantic import BaseModel
 from travellings_graph.domain_utils import strip_host
 
 
+class BuildInfo(BaseModel):
+    build_time: str
+    members: int
+    connections: int
+    average_connections: float
+
+    @staticmethod
+    def no_data() -> "BuildInfo":
+        return BuildInfo(
+            build_time="",
+            members=0,
+            connections=0,
+            average_connections=0,
+        )
+
+
 class AnalysisItem(BaseModel):
     id: int
     name: str
@@ -26,11 +42,13 @@ class AnalysisItem(BaseModel):
 
 
 class GetAnalysisAllResponse(BaseModel):
+    build_info: BuildInfo
     total: int
     items: list[AnalysisItem]
 
 
 class GetAnalysisByPageResponse(BaseModel):
+    build_info: BuildInfo
     total_items: int
     total_page: int
     page: int
@@ -67,10 +85,21 @@ class GetPredecessorsResponse(BaseModel):
 
 @dataclass
 class GlobalData:
+    build_info: BuildInfo
     analysis: list[AnalysisItem]
     analysis_id_map: dict[int, AnalysisItem]
     analysis_host_map: dict[str, AnalysisItem]
     graph: nx.DiGraph
+
+    @staticmethod
+    def no_data() -> "GlobalData":
+        return GlobalData(
+            build_info=BuildInfo.no_data(),
+            analysis=[],
+            analysis_id_map={},
+            analysis_host_map={},
+            graph=nx.DiGraph(),
+        )
 
 
 def reload() -> GlobalData:
@@ -100,7 +129,11 @@ def reload() -> GlobalData:
     if not isinstance(graph, nx.DiGraph):
         raise ValueError("Invalid graph type")
 
+    with open("build-info.json", "r", encoding="utf-8") as f:
+        build_info = BuildInfo.model_validate_json(f.read())
+
     return GlobalData(
+        build_info=build_info,
         analysis=analysis,
         analysis_id_map=analysis_id_map,
         analysis_host_map=analysis_host_map,
@@ -108,7 +141,7 @@ def reload() -> GlobalData:
     )
 
 
-global_data: GlobalData = GlobalData([], {}, {}, nx.DiGraph())
+global_data: GlobalData = GlobalData.no_data()
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -122,6 +155,7 @@ app.add_middleware(
 @app.get("/v1/analysis")
 def get_analysis_all() -> GetAnalysisAllResponse:
     return GetAnalysisAllResponse(
+        build_info=global_data.build_info,
         total=len(global_data.analysis),
         items=global_data.analysis,
     )
@@ -144,6 +178,7 @@ def get_analysis_by_page(page: int, q: str | None = None) -> GetAnalysisByPageRe
     total_page = (len(data) + item_per_page - 1) // item_per_page
     items = data[(page - 1) * item_per_page : page * item_per_page]
     return GetAnalysisByPageResponse(
+        build_info=global_data.build_info,
         total_items=len(data),
         total_page=total_page,
         page=page,
