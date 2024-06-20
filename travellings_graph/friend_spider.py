@@ -249,7 +249,13 @@ class FriendSpider(scrapy.Spider):
         yield {"kind": "no_friends_page", "start": start_url, "from": response.url}
 
     def parse_friends_page(self, response, **kwargs):
+        start_url = kwargs.get("start", response.url)
         if b"%c Mix Space %c https://github.com/mx-space" in response.body:
+            yield {
+                "kind": "friends_page",
+                "start": start_url,
+                "target": response.url,
+            }
             iterator = self.try_parse_friend_page_mix_space_index(response, **kwargs)
             while True:
                 try:
@@ -337,6 +343,7 @@ class FriendSpider(scrapy.Spider):
     ) -> Generator[Any, None, bool]:
         patterns = [
             r"\"NEXT_PUBLIC_API_URL\"\s*:\s*\"([^\"]*)\"",
+            r"\\\"NEXT_PUBLIC_API_URL\\\"\s*:\s*\\\"([^\"]*)\\\"",
             r'<meta\s+name="api_url"\s+content="([^\"]*)"\/?\s*>',
         ]
         body_str = response.body.decode("utf-8")
@@ -358,19 +365,12 @@ class FriendSpider(scrapy.Spider):
     def parse_friend_page_mix_space_data(self, response, **kwargs):
         start_url = kwargs.get("start", response.url)
         if response.status != 200:
-            yield {"kind": "no_friends_page", "start": start_url, "from": response.url}
             return
         if not response.headers.get("Content-Type", b"").startswith(
             b"application/json"
         ):
-            yield {"kind": "no_friends_page", "start": start_url, "from": response.url}
             return
         json_data = json.loads(response.body.decode("utf-8"))
-        yield {
-            "kind": "friends_page",
-            "start": start_url,
-            "target": response.url,
-        }
         if "data" not in json_data:
             return
         for link in json_data["data"]:
